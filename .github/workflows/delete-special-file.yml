@@ -1,0 +1,36 @@
+name: Delete Special Character File
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  delete-file:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Find and delete file with special characters
+        run: |
+          # Find all files in root directory
+          echo "Listing all files in root directory:"
+          ls -la
+          
+          # Find file with special characters (the one that's not a normal filename)
+          # Using find to locate files with non-ASCII characters
+          find . -maxdepth 1 -type f -name '*[!a-zA-Z0-9._-]*' ! -name '*.md' ! -name '*.json' ! -name '*.js' ! -name '*.py' ! -name '*.yml' ! -name '*.yaml' ! -name '*.txt' ! -name '*.config' ! -name '*.gitignore' ! -name '*.gitconfig' | while read file; do
+            if [ -f "$file" ]; then
+              echo "Found file with special characters: $file"
+              git rm -f "$file"
+            fi
+          done
+          
+          # Alternative approach: use perl to find files with non-printable characters
+          perl -e 'opendir(D,"."); @files=readdir(D); closedir(D); foreach(@files){if(/[^\x20-\x7E]/&&-f){print "$_\n"; system("git","rm","-f","$_")}}'
+      
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "Delete file with special characters" || echo "No files to delete"
+          git push
